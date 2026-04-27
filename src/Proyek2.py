@@ -29,15 +29,25 @@ def menu():
 #this is ai
 def tanya_ai(user_input):
     try:
+        data = get_produk()
+
+        produk_text = ""
+        for d in data:
+            produk_text += f"{d[0]} - Rp{d[1]} (stok: {d[2]})\n"
+
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "Kamu adalah customer service UMKM sembako. "
-                        "Jawab hanya seputar paket, harga, isi paket, dan pembelian. "
-                        "Jika pertanyaan tidak relevan, arahkan ke menu bot."
+                        "Kamu adalah CS UMKM sembako.\n"
+                        "Jawab HANYA berdasarkan data ini:\n\n"
+                        f"{produk_text}\n\n"
+                        "ATURAN:"
+                        "- Jangan mengarang produk\n"
+                        "- Jangan ubah harga\n"
+                        "- Kalau di luar data jawab: 'Silakan pilih menu bot.'"
                     )
                 },
                 {
@@ -49,8 +59,18 @@ def tanya_ai(user_input):
 
         return response.choices[0].message.content
 
-    except Exception as e:
-        return f"⚠️ AI Error: {e}"
+    except:
+        return "⚠️ AI error"
+
+def validasi_jawaban(jawaban):
+    data = get_produk()
+    nama_produk = [d[0] for d in data]
+
+    for nama in nama_produk:
+        if nama.lower() in jawaban.lower():
+            return jawaban
+
+    return "Silakan pilih menu yang tersedia di bot."
 
 # /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -147,16 +167,37 @@ async def stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # HANDLE CHAT (🔥 AI MASUK SINI)
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
+     text = update.message.text
 
-    if text == "📦 Paket":
+async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.lower()
+
+    # MENU 1
+    if text == "📦 paket":
         await paket(update, context)
-    elif text == "📊 Stok":
+        return
+
+    # MENU 2
+    elif text == "📊 stok":
         await stok(update, context)
-    else:
-        # 🔥 FALLBACK KE AI
-        jawaban = tanya_ai(text)
-        await update.message.reply_text(jawaban)
+        return
+
+    # 🔥 RESPON CEPAT TANPA AI
+    elif "harga" in text or "paket" in text:
+        data = get_produk()
+        teks = "📦 DAFTAR PAKET:\n\n"
+
+        for d in data:
+            teks += f"{d[0]} - Rp{d[1]} (stok: {d[2]})\n"
+
+        await update.message.reply_text(teks)
+        return
+
+    # 🔥 AI FALLBACK
+    jawaban = tanya_ai(text)
+    jawaban = validasi_jawaban(jawaban)
+
+    await update.message.reply_text(jawaban)
 
 # RUN BOT
 app = ApplicationBuilder().token(os.getenv("TOKEN")).build()
