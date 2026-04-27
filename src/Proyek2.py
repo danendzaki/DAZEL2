@@ -3,7 +3,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 
 from db_proyek2 import init_db, tambah_produk, get_produk, kurangi_stok
 from service_proyek2 import simpan_pesanan, ambil_pesanan, hapus_pesanan
-#IMPORT AI
+
+# 🔥 IMPORT AI + ENV
 from groq import Groq
 from dotenv import load_dotenv
 import os
@@ -12,7 +13,6 @@ load_dotenv()
 
 # 🔥 CLIENT GROQ
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-print("CEK GROQ:", os.getenv("GROQ_API_KEY"))
 
 OWNER_ID = 8660243218
 
@@ -26,7 +26,8 @@ def menu():
         ["📦 Paket", "📊 Stok"]
     ], resize_keyboard=True)
 
-#this is ai
+# ===================== AI =====================
+
 def tanya_ai(user_input):
     try:
         data = get_produk()
@@ -41,13 +42,14 @@ def tanya_ai(user_input):
                 {
                     "role": "system",
                     "content": (
-                        "Kamu adalah CS UMKM sembako.\n"
-                        "Jawab HANYA berdasarkan data ini:\n\n"
+                        "Kamu adalah customer service UMKM sembako.\n\n"
+                        "DATA PRODUK RESMI:\n"
                         f"{produk_text}\n\n"
-                        "ATURAN:"
-                        "- Jangan mengarang produk\n"
-                        "- Jangan ubah harga\n"
-                        "- Kalau di luar data jawab: 'Silakan pilih menu bot.'"
+                        "ATURAN WAJIB:\n"
+                        "1. HANYA jawab berdasarkan data di atas.\n"
+                        "2. DILARANG menambah produk baru.\n"
+                        "3. Jika tidak ada dalam data, arahkan ke menu bot.\n"
+                        "4. Jawaban singkat dan jelas.\n"
                     )
                 },
                 {
@@ -72,18 +74,19 @@ def validasi_jawaban(jawaban):
 
     return "Silakan pilih menu yang tersedia di bot."
 
-# /start
+# ===================== COMMAND =====================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Selamat datang!", reply_markup=menu())
 
-# lihat paket (DITAMBAH DESKRIPSI 🔥)
+# ===================== FITUR =====================
+
 async def paket(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = get_produk()
     teks = "📦 DAFTAR PAKET:\n\n"
     keyboard = []
 
     for d in data:
-        # 🔥 TAMBAHAN DESKRIPSI (HASIL EVALUASI)
         if d[0] == "Paket Hemat":
             isi = "Beras 2kg, Minyak 1L, Gula 1kg"
         elif d[0] == "Paket Keluarga":
@@ -99,7 +102,15 @@ async def paket(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(teks, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# tombol
+async def stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = get_produk()
+    teks = "📊 STOK:\n"
+    for d in data:
+        teks += f"{d[0]}: {d[2]}\n"
+    await update.message.reply_text(teks)
+
+# ===================== BUTTON =====================
+
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -124,7 +135,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "💳 Silakan transfer:\n\n"
             "🏦 BCA: 123456789\n"
-            "📱 DANA/OVO: 08123456789\n\n"
+            "📱 DANA/OVO/GoPay: 08123456789\n\n"
             "Klik konfirmasi setelah bayar",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -157,32 +168,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.edit_message_text("✔ Pesanan di-ACC")
 
-# stok
-async def stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = get_produk()
-    teks = "📊 STOK:\n"
-    for d in data:
-        teks += f"{d[0]}: {d[2]}\n"
-    await update.message.reply_text(teks)
-
-# HANDLE CHAT (🔥 AI MASUK SINI)
-async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-     text = update.message.text
+# ===================== HANDLE CHAT =====================
 
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
 
-    # MENU 1
+    # MENU
     if text == "📦 paket":
         await paket(update, context)
         return
 
-    # MENU 2
     elif text == "📊 stok":
         await stok(update, context)
         return
 
-    # 🔥 RESPON CEPAT TANPA AI
+    # PRODUK CEPAT
     elif "harga" in text or "paket" in text:
         data = get_produk()
         teks = "📦 DAFTAR PAKET:\n\n"
@@ -193,13 +193,40 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(teks)
         return
 
+    # 🔥 INFO PEMBAYARAN
+    elif "bayar" in text or "pembayaran" in text:
+        await update.message.reply_text(
+            "💳 Pembayaran bisa melalui:\n\n"
+            "🏦 BCA: 123456789\n"
+            "📱 DANA/OVO/GoPay: 08123456789"
+        )
+        return
+
+    # 🔥 DETEKSI PEMBAYARAN USER → KIRIM KE ADMIN
+    elif "gopay" in text or "dana" in text or "ovo" in text or "transfer" in text:
+
+        await context.bot.send_message(
+            chat_id=OWNER_ID,
+            text=(
+                "💳 NOTIF PEMBAYARAN\n\n"
+                f"User: {update.message.from_user.id}\n"
+                f"Pesan: {update.message.text}"
+            )
+        )
+
+        await update.message.reply_text(
+            "✅ Pembayaran kamu sedang dicek admin ya 🙏"
+        )
+        return
+
     # 🔥 AI FALLBACK
     jawaban = tanya_ai(text)
     jawaban = validasi_jawaban(jawaban)
 
     await update.message.reply_text(jawaban)
 
-# RUN BOT
+# ===================== RUN =====================
+
 app = ApplicationBuilder().token(os.getenv("TOKEN")).build()
 
 app.add_handler(CommandHandler("start", start))
