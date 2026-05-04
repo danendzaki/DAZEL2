@@ -9,9 +9,7 @@ from dotenv import load_dotenv
 import os
 import logging
 
-# ========================
 # LOAD ENV
-# ========================
 load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
@@ -21,40 +19,30 @@ OWNER_ID = 8660243218
 
 client = Groq(api_key=GROQ_API_KEY)
 
-# ========================
-# LOGGING (PEKAN 3 🔥)
-# ========================
+# LOGGING
 logging.basicConfig(
     filename='error_log.txt',
     level=logging.ERROR,
     format='%(asctime)s | %(levelname)s | %(message)s'
 )
 
-# ========================
 # DATA TAMBAHAN
-# ========================
 isi_paket = {
     "Paket Hemat": "Beras 2kg, Minyak 1L, Gula 1kg",
     "Paket Keluarga": "Beras 5kg, Minyak 2L, Gula 2kg, Mie Instan 10"
 }
 
-# ========================
 # INIT DB
-# ========================
 init_db()
 tambah_produk()
 
-# ========================
 # MENU
-# ========================
 def menu():
     return ReplyKeyboardMarkup([
         ["📦 Paket", "📊 Stok"]
     ], resize_keyboard=True)
 
-# ========================
-# AI FUNCTION
-# ========================
+# AI 
 def tanya_ai(user_input):
     try:
         data = get_produk()
@@ -100,17 +88,15 @@ ATURAN:
 
     except Exception as e:
         logging.error(f"AI ERROR: {e}")
-        raise e  # 🔥 biar ketangkep error handler
+        raise e  # biar ketangkep error handler
 
-# ========================
 # START
-# ========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Selamat datang!", reply_markup=menu())
 
-# ========================
+
 # PAKET
-# ========================
+
 async def paket(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = get_produk()
     teks = "📦 DAFTAR PAKET:\n\n"
@@ -130,9 +116,7 @@ async def paket(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(teks, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ========================
 # BUTTON
-# ========================
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -190,9 +174,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await query.edit_message_text("✔ Pesanan di-ACC")
 
-# ========================
 # STOK
-# ========================
 async def stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = get_produk()
     teks = "📊 STOK:\n"
@@ -200,9 +182,7 @@ async def stok(update: Update, context: ContextTypes.DEFAULT_TYPE):
         teks += f"{d[0]}: {d[2]}\n"
     await update.message.reply_text(teks)
 
-# ========================
 # HANDLE CHAT
-# ========================
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
 
@@ -220,16 +200,14 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 🔥 SIMULASI ERROR (BUKTI PEKAN 3)
+    # SIMULASI ERROR 
     elif text == "error":
         raise Exception("Simulasi error manual")
 
     jawaban = tanya_ai(text)
     await update.message.reply_text(jawaban)
 
-# ========================
 # ERROR HANDLER
-# ========================
 async def error_handler(update, context):
     logging.error("ERROR TERJADI:", exc_info=context.error)
 
@@ -241,9 +219,7 @@ async def error_handler(update, context):
     except:
         pass
 
-# ========================
 # RUN
-# ========================
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
