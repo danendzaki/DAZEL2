@@ -39,8 +39,7 @@
 ## 🛠 Tech Stack
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=python,git,github,vscode" />
-  <img src="https://skillicons.dev/icons?i=python,git,github,linux,vscode,postgresql,fastapi,docker" />
+  <img src="https://skillicons.dev/icons?i=git,vscode" />
   <img src="https://skillicons.dev/icons?i=python" />
   <img src="https://skillicons.dev/icons?i=github" />
 </p>
